@@ -218,6 +218,40 @@ Or you can change changes unstoppable workers count
     pool.SetUnstoppableWorkers(1000000)
 ```
 
+## Interfaces
+
+You can implement Task interface and submit it in pool:
+
+```go
+
+// Task interface for goroutines pool.
+type Task interface {
+	// Cancel perform cancel task.
+	Cancel()
+
+	// Error returns task Run error.
+	// Blocked until the task is done.
+	Error() error
+
+	// Get returns task Run result.
+	// Blocked until the task is done.
+	Get() interface{}
+
+	// IsCancelled returns true if this task has been canceled.
+	IsCancelled() bool
+
+	// IsDone returns true if this task has been done.
+	IsDone() bool
+
+	// Panic returns task Run panic.
+	// Blocked until the task is done.
+	Panic() interface{}
+
+	// Run perform task.
+	Run()
+}
+
+```
 
 This is safe to perform from any goroutine even if others are still processing.
 
