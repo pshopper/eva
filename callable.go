@@ -1,4 +1,4 @@
-package pool
+package eva
 
 // Callable is interface, that Call function for task in goroutines pool.
 type Callable interface {
