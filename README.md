@@ -18,7 +18,7 @@ of running goroutines, readjusting capacity of pool dynamically, closing pool.
 - Automatically managing and recycling a massive number of goroutines.
 - Availability of overriding the Task or Callable interface.
 - Unlimited task queue.
-- Recover panic.
+- Recover panic in eva.CustomTask.
 
 
 ## Installation
