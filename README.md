@@ -1,8 +1,9 @@
 # EVA
 
-[![goreportcard for pshopper/eva][1]][2]
-[![godoc for pshopper/eva][3]][4]
-[![MIT Licence][5]][6]
+[![Build Status][1]][2]
+[![goreportcard for pshopper/eva][3]][4]
+[![godoc for pshopper/eva][5]][6]
+[![MIT Licence][7]][8]
 
 
 Package EVA implements a fixed goroutine pool for managing and recycling
@@ -260,9 +261,11 @@ This is safe to perform from any goroutine even if others are still processing.
 All the tasks submitted to EVA pool will not be guaranteed to be processed in order,
 because those tasks distribute among a series of concurrent workers, thus those tasks are processed concurrently.
 
-[1]: https://goreportcard.com/badge/github.com/pshopper/eva
-[2]: https://goreportcard.com/report/github.com/pshopper/eva
-[3]: https://godoc.org/github.com/pshopper/eva?status.svg
-[4]: https://godoc.org/github.com/pshopper/eva
-[5]: https://badges.frapsoft.com/os/mit/mit.svg?v=103
-[6]: https://opensource.org/licenses/mit-license.php
+[1]: https://travis-ci.com/pshopper/eva.svg?branch=master
+[2]: https://travis-ci.com/pshopper/eva
+[3]: https://goreportcard.com/badge/github.com/pshopper/eva
+[4]: https://goreportcard.com/report/github.com/pshopper/eva
+[5]: https://godoc.org/github.com/pshopper/eva?status.svg
+[6]: https://godoc.org/github.com/pshopper/eva
+[7]: https://badges.frapsoft.com/os/mit/mit.svg?v=103
+[8]: https://opensource.org/licenses/mit-license.php
