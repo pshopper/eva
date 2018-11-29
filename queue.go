@@ -47,97 +47,97 @@ type TaskQueue interface {
 	Take() (Task, error)
 }
 
-type customTaskQueue struct {
+type customTaskDeque struct {
 	cond   *sync.Cond
 	tasks  []*wrappedTask
 	closed bool
 }
 
-func newTaskQueue() *customTaskQueue {
-	return &customTaskQueue{
+func newCustomTaskDeque() *customTaskDeque {
+	return &customTaskDeque{
 		cond: sync.NewCond(new(sync.Mutex)),
 	}
 }
 
-func (tq *customTaskQueue) close() {
-	tq.cond.L.Lock()
-	defer tq.cond.L.Unlock()
+func (td *customTaskDeque) close() {
+	td.cond.L.Lock()
+	defer td.cond.L.Unlock()
 
-	if tq.closed {
+	if td.closed {
 		return
 	}
 
-	tq.closed = true
+	td.closed = true
 
-	tq.cond.Broadcast()
+	td.cond.Broadcast()
 }
 
-func (tq *customTaskQueue) take() (*wrappedTask, error) {
-	tq.cond.L.Lock()
-	defer tq.cond.L.Unlock()
+func (td *customTaskDeque) take() (*wrappedTask, error) {
+	td.cond.L.Lock()
+	defer td.cond.L.Unlock()
 
-	for len(tq.tasks) == 0 && !tq.closed {
-		tq.cond.Wait()
+	for len(td.tasks) == 0 && !td.closed {
+		td.cond.Wait()
 	}
 
-	if tq.closed {
+	if td.closed {
 		return nil, ErrTaskQueueClosed
 	}
 
 	var t *wrappedTask
-	for i, task := range tq.tasks {
-		skipped := tq.skipTask(task)
+	for i, task := range td.tasks {
+		skipped := td.skipTask(task)
 		if skipped {
 			continue
 		}
 		t = task
-		if len(tq.tasks) == 1 {
-			tq.tasks = tq.tasks[:0:0]
+		if len(td.tasks) == 1 {
+			td.tasks = td.tasks[:0:0]
 		} else {
-			tq.tasks = tq.tasks[i+1:]
+			td.tasks = td.tasks[i+1:]
 		}
 		break
 	}
 
 	if t == nil {
-		tq.tasks = tq.tasks[:0:0]
+		td.tasks = td.tasks[:0:0]
 		return nil, ErrTaskQueueEmpty
 	}
 
 	return t, nil
 }
 
-func (tq *customTaskQueue) put(task *wrappedTask, prepend bool) error {
-	tq.cond.L.Lock()
-	defer tq.cond.L.Unlock()
+func (td *customTaskDeque) put(task *wrappedTask, prepend bool) error {
+	td.cond.L.Lock()
+	defer td.cond.L.Unlock()
 
 	if prepend {
-		tq.tasks = append([]*wrappedTask{task}, tq.tasks...)
+		td.tasks = append([]*wrappedTask{task}, td.tasks...)
 		return nil
 	}
 
-	if tq.closed {
+	if td.closed {
 		return ErrTaskQueueClosed
 	}
 
-	tq.tasks = append(tq.tasks, task)
-	tq.cond.Signal()
+	td.tasks = append(td.tasks, task)
+	td.cond.Signal()
 
 	return nil
 }
 
-func (tq *customTaskQueue) signal() {
-	tq.cond.L.Lock()
-	defer tq.cond.L.Unlock()
+func (td *customTaskDeque) signal() {
+	td.cond.L.Lock()
+	defer td.cond.L.Unlock()
 
-	if tq.closed {
+	if td.closed {
 		return
 	}
 
-	tq.cond.Signal()
+	td.cond.Signal()
 }
 
-func (tq *customTaskQueue) skipTask(task *wrappedTask) bool {
+func (td *customTaskDeque) skipTask(task *wrappedTask) bool {
 	if task.ctx != nil {
 		select {
 		case <-task.ctx.Done():
@@ -156,22 +156,22 @@ func (tq *customTaskQueue) skipTask(task *wrappedTask) bool {
 // space to become available.
 // It returns ErrTaskQueueClosed only if queue become closed.
 // It returns ErrTaskQueueEmpty only if queue is empty.
-func (tq *customTaskQueue) Put(t Task) error {
+func (td *customTaskDeque) Put(t Task) error {
 	task := &wrappedTask{Task: t}
-	return tq.put(task, false)
+	return td.put(task, false)
 }
 
 // Size returns the current number of tasks in the queue.
-func (tq *customTaskQueue) Size() int {
-	tq.cond.L.Lock()
-	defer tq.cond.L.Unlock()
+func (td *customTaskDeque) Size() int {
+	td.cond.L.Lock()
+	defer td.cond.L.Unlock()
 
-	return len(tq.tasks)
+	return len(td.tasks)
 }
 
 // Take retrieves and removes the head of this queue, waiting
 // if necessary until an task becomes available.
 // It returns ErrTaskQueueClosed only if queue become closed.
-func (tq *customTaskQueue) Take() (Task, error) {
-	return tq.take()
+func (td *customTaskDeque) Take() (Task, error) {
+	return td.take()
 }

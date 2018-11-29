@@ -59,7 +59,7 @@ type Pool struct {
 	config     Config
 	close      chan struct{}
 	syncClose  sync.Once
-	taskQueue  *customTaskQueue
+	taskDeque  *customTaskDeque
 	arbiterWg  sync.WaitGroup
 	workerWg   sync.WaitGroup
 	waitWg     sync.WaitGroup
@@ -96,7 +96,7 @@ func NewPool(c *Config) *Pool {
 	cp.config = c.withDefaults()
 
 	cp.close = make(chan struct{})
-	cp.taskQueue = newTaskQueue()
+	cp.taskDeque = newCustomTaskDeque()
 	cp.workers = make([]*customWorker, 0, cp.config.UnstoppableWorkers)
 	cp.waitChan = make(chan struct{}, 1)
 
@@ -106,7 +106,7 @@ func NewPool(c *Config) *Pool {
 		cp.workers = append(cp.workers, worker)
 		go worker.Run(func() {
 			cp.waitTask()
-			cp.taskQueue.signal()
+			cp.taskDeque.signal()
 		}, cp.workerWg.Done)
 	}
 
@@ -119,7 +119,7 @@ func NewPool(c *Config) *Pool {
 
 func (p *Pool) arbiter() {
 	for {
-		t, err := p.taskQueue.take()
+		t, err := p.taskDeque.take()
 		if err != nil {
 			if err == ErrTaskQueueClosed {
 				p.arbiterWg.Done()
@@ -140,7 +140,7 @@ func (p *Pool) arbiter() {
 			case <-p.waitChan:
 				break
 			case <-p.close:
-				p.taskQueue.put(t, true)
+				p.taskDeque.put(t, true)
 				p.arbiterWg.Done()
 				return
 			}
@@ -166,7 +166,7 @@ func (p *Pool) setUnstoppableWorkers(count int) {
 		for i := 0; i < count; i++ {
 			workers[i].Release()
 			for task := range workers[i].taskChan {
-				p.taskQueue.put(task, true)
+				p.taskDeque.put(task, true)
 			}
 			p.deleteWorker(workers[i])
 		}
@@ -178,7 +178,7 @@ func (p *Pool) setUnstoppableWorkers(count int) {
 				p.workers = append(p.workers, worker)
 				go worker.Run(func() {
 					p.waitTask()
-					p.taskQueue.signal()
+					p.taskDeque.signal()
 				}, p.workerWg.Done)
 			}
 		}
@@ -203,7 +203,7 @@ func (p *Pool) spawn(t *wrappedTask) bool {
 	go worker.Spawn(t, func() {
 		atomic.AddInt64(&p.spawnCount, -1)
 		p.waitTask()
-		p.taskQueue.signal()
+		p.taskDeque.signal()
 	})
 
 	return true
@@ -248,7 +248,7 @@ func (p *Pool) submitWrapped(t *wrappedTask) error {
 
 	p.waitWg.Add(1)
 
-	err := p.taskQueue.put(t, false)
+	err := p.taskDeque.put(t, false)
 	if err != nil {
 		p.waitWg.Done()
 		return ErrPoolClosed
@@ -286,7 +286,7 @@ func (p *Pool) Close() {
 		p.guard.Lock()
 		close(p.close)
 		p.guard.Unlock()
-		p.taskQueue.close()
+		p.taskDeque.close()
 
 		p.arbiterWg.Wait()
 
@@ -296,11 +296,11 @@ func (p *Pool) Close() {
 		for _, worker := range workers {
 			worker.Release()
 			for task := range worker.taskChan {
-				p.taskQueue.put(task, true)
+				p.taskDeque.put(task, true)
 			}
 		}
 
-		for range p.taskQueue.tasks {
+		for range p.taskDeque.tasks {
 			p.waitWg.Done()
 		}
 
@@ -440,7 +440,7 @@ func (p *Pool) SubmitWithContext(ctx context.Context, t Task) error {
 
 // TaskQueue returns the task queue used by this pool.
 func (p *Pool) TaskQueue() TaskQueue {
-	return p.taskQueue
+	return p.taskDeque
 }
 
 // Wait pool is done with all its tasks.
