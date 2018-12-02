@@ -44,6 +44,11 @@ func TestSubmit(t *testing.T) {
 		p.Submit(task)
 	}
 
+	activeCount := p.ActiveCount()
+	if activeCount == 0 {
+		t.Fatalf("invalid active workers value: %d; want > 0", activeCount)
+	}
+
 	wg.Wait()
 
 	p.Close()
@@ -90,6 +95,14 @@ LOOP:
 
 	if count == 100 {
 		t.Fatalf("invalid count value: 100; want: <100")
+	}
+
+	taskQueue := p.TaskQueue()
+
+	size := taskQueue.Size()
+
+	if size == 0 {
+		t.Fatalf("invalid taskQueue size: 0; want >0")
 	}
 
 }
@@ -596,22 +609,27 @@ func TestResize1(t *testing.T) {
 
 	p.SetSize(7)
 	if p.config.Size != 7 {
-		t.Fatalf("unxpected pool size %d; want 7", p.Size())
+		t.Fatalf("invalid pool size %d; want 7", p.Size())
 	}
 
 	p.SetSize(12)
 	if p.config.Size != 12 {
-		t.Fatalf("unxpected pool size %d; want 12", p.Size())
+		t.Fatalf("invalid pool size %d; want 12", p.Size())
 	}
 
 	p.SetSize(3)
 	if p.config.Size != 3 {
-		t.Fatalf("unxpected pool size %d; want 3", p.Size())
+		t.Fatalf("invalid pool size %d; want 3", p.Size())
 	}
 
 	wg2.Done()
 
 	p.Wait()
+
+	unstoppableWorkers := p.UnstoppableWorkers()
+	if unstoppableWorkers != 3 {
+		t.Fatalf("invalid unstoppableWorkers value %d; want 3", unstoppableWorkers)
+	}
 
 	p.Close()
 }
@@ -641,22 +659,27 @@ func TestResize2(t *testing.T) {
 
 	p.SetSize(7)
 	if p.config.Size != 7 {
-		t.Fatalf("unxpected pool size %d; want 7", p.Size())
+		t.Fatalf("invalid pool size %d; want 7", p.Size())
 	}
 
 	p.SetSize(12)
 	if p.config.Size != 12 {
-		t.Fatalf("unxpected pool size %d; want 12", p.Size())
+		t.Fatalf("invalid pool size %d; want 12", p.Size())
 	}
 
 	p.SetSize(3)
 	if p.config.Size != 3 {
-		t.Fatalf("unxpected pool size %d; want 3", p.Size())
+		t.Fatalf("invalid pool size %d; want 3", p.Size())
 	}
 
 	wg2.Done()
 
 	p.Wait()
+
+	unstoppableWorkers := p.UnstoppableWorkers()
+	if unstoppableWorkers != 3 {
+		t.Fatalf("invalid unstoppableWorkers value %d; want 3", unstoppableWorkers)
+	}
 
 	p.Close()
 
