@@ -65,6 +65,7 @@ type wrappedTask struct {
 type CustomTask struct {
 	c          Callable
 	cancelSync sync.Once
+	doneSync   sync.Once
 	cancelChan chan struct{}
 	doneChan   chan struct{}
 	resultChan chan interface{}
@@ -162,20 +163,26 @@ func (ct *CustomTask) Panic() interface{} {
 
 // Run perform task.
 func (ct *CustomTask) Run() {
-	defer func() {
-		if r := recover(); r != nil {
-			err := fmt.Errorf("Recovered:\n%v\nStack:\n%s", r, string(debug.Stack()))
-
-			ct.resultChan <- nil
-			ct.errorChan <- nil
-			ct.panicChan <- err
+	ct.doneSync.Do(func() {
+		if ct.IsCancelled() {
+			return
 		}
-		close(ct.doneChan)
-		close(ct.resultChan)
-		close(ct.panicChan)
-	}()
 
-	ct.c.Call()
-	ct.resultChan <- ct.c.Result()
-	ct.errorChan <- ct.c.Error()
+		defer func() {
+			if r := recover(); r != nil {
+				err := fmt.Errorf("Recovered:\n%v\nStack:\n%s", r, string(debug.Stack()))
+
+				ct.resultChan <- nil
+				ct.errorChan <- nil
+				ct.panicChan <- err
+			}
+			close(ct.doneChan)
+			close(ct.resultChan)
+			close(ct.panicChan)
+		}()
+
+		ct.c.Call()
+		ct.resultChan <- ct.c.Result()
+		ct.errorChan <- ct.c.Error()
+	})
 }
