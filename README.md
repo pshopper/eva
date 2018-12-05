@@ -219,6 +219,8 @@ Or you can change changes unstoppable workers count
     pool.SetUnstoppableWorkers(1000000)
 ```
 
+This is safe to perform from any goroutine even if others are still processing.
+
 ## Interfaces
 
 You can implement Task interface and submit it in pool:
@@ -253,8 +255,6 @@ type Task interface {
 }
 
 ```
-
-This is safe to perform from any goroutine even if others are still processing.
 
 ## Ordering
 
