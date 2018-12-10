@@ -91,30 +91,30 @@ func (c *Config) withDefaults() (config Config) {
 
 // NewPool is constructor for Pool
 func NewPool(c *Config) *Pool {
-	cp := new(Pool)
+	p := new(Pool)
 
-	cp.config = c.withDefaults()
+	p.config = c.withDefaults()
 
-	cp.close = make(chan struct{})
-	cp.taskDeque = newCustomTaskDeque()
-	cp.workers = make([]*customWorker, 0, cp.config.UnstoppableWorkers)
-	cp.waitChan = make(chan struct{}, 1)
+	p.close = make(chan struct{})
+	p.taskDeque = newCustomTaskDeque()
+	p.workers = make([]*customWorker, 0, p.config.UnstoppableWorkers)
+	p.waitChan = make(chan struct{}, 1)
 
-	cp.workerWg.Add(cp.config.UnstoppableWorkers)
-	for i := 0; i < cp.config.UnstoppableWorkers; i++ {
-		worker := newCustomWorker(cp.close)
-		cp.workers = append(cp.workers, worker)
+	p.workerWg.Add(p.config.UnstoppableWorkers)
+	for i := 0; i < p.config.UnstoppableWorkers; i++ {
+		worker := newCustomWorker(p.close)
+		p.workers = append(p.workers, worker)
 		go worker.Run(func() {
-			cp.waitTask()
-			cp.taskDeque.signal()
-		}, cp.workerWg.Done)
+			p.waitTask()
+			p.taskDeque.signal()
+		}, p.workerWg.Done)
 	}
 
-	cp.arbiterWg.Add(1)
+	p.arbiterWg.Add(1)
 
-	go cp.arbiter()
+	go p.arbiter()
 
-	return cp
+	return p
 }
 
 func (p *Pool) arbiter() {

@@ -56,6 +56,15 @@ func TestSubmit(t *testing.T) {
 	if count != 100 {
 		t.Fatalf("invalid count value: %d; want: 100", count)
 	}
+
+	task := NewCustomTask(func(args ...interface{}) (interface{}, error) {
+		return nil, nil
+	})
+
+	err := p.Submit(task)
+	if err != ErrPoolClosed {
+		t.Fatalf("unexpected error: %v, want: %v", err, ErrPoolClosed)
+	}
 }
 
 func TestSubmitClose1(t *testing.T) {
@@ -183,7 +192,6 @@ LOOP1:
 	}
 
 	p.Close()
-
 }
 
 func TestSubmitWithCompletionClose2(t *testing.T) {
@@ -622,6 +630,11 @@ func TestResize1(t *testing.T) {
 		t.Fatalf("invalid pool size %d; want 3", p.Size())
 	}
 
+	err := p.SetSize(-5)
+	if err != ErrPoolSize {
+		t.Fatalf("unexpected error: %v, want: %v", err, ErrPoolSize)
+	}
+
 	wg2.Done()
 
 	p.Wait()
@@ -670,6 +683,11 @@ func TestResize2(t *testing.T) {
 	p.SetSize(3)
 	if p.config.Size != 3 {
 		t.Fatalf("invalid pool size %d; want 3", p.Size())
+	}
+
+	err := p.SetSize(-5)
+	if err != ErrPoolSize {
+		t.Fatalf("unexpected error: %v, want: %v", err, ErrPoolSize)
 	}
 
 	wg2.Done()
