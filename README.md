@@ -79,7 +79,7 @@ Or, using dep:
             return result, err
         }, args)
 
-        p.SubmitWithCompletion(t)
+        p.SubmitWithCompletion(completion, t)
     }
 
 
