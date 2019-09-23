@@ -57,7 +57,8 @@ type Config struct {
 // as well as processing task.
 type Pool struct {
 	config     Config
-	close      chan struct{}
+	cancel     context.CancelFunc
+	ctx        context.Context
 	syncClose  sync.Once
 	taskDeque  *customTaskDeque
 	arbiterWg  sync.WaitGroup
@@ -95,14 +96,14 @@ func NewPool(c *Config) *Pool {
 
 	p.config = c.withDefaults()
 
-	p.close = make(chan struct{})
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	p.taskDeque = newCustomTaskDeque()
 	p.workers = make([]*customWorker, 0, p.config.UnstoppableWorkers)
 	p.waitChan = make(chan struct{}, 1)
 
 	p.workerWg.Add(p.config.UnstoppableWorkers)
 	for i := 0; i < p.config.UnstoppableWorkers; i++ {
-		worker := newCustomWorker(p.close)
+		worker := newCustomWorker(p.ctx)
 		p.workers = append(p.workers, worker)
 		go worker.Run(func() {
 			p.waitTask()
@@ -139,8 +140,8 @@ func (p *Pool) arbiter() {
 			select {
 			case <-p.waitChan:
 				break
-			case <-p.close:
-				p.taskDeque.put(t, true)
+			case <-p.ctx.Done():
+				_ = p.taskDeque.put(t, true)
 				p.arbiterWg.Done()
 				return
 			}
@@ -174,7 +175,7 @@ func (p *Pool) setUnstoppableWorkers(count int) {
 		for i := 0; i < p.config.UnstoppableWorkers-count; i++ {
 			p.workerWg.Add(p.config.UnstoppableWorkers - count)
 			for i := 0; i < p.config.UnstoppableWorkers; i++ {
-				worker := newCustomWorker(p.close)
+				worker := newCustomWorker(p.ctx)
 				p.workers = append(p.workers, worker)
 				go worker.Run(func() {
 					p.waitTask()
@@ -199,7 +200,7 @@ func (p *Pool) spawn(t *wrappedTask) bool {
 	}
 
 	atomic.AddInt64(&p.spawnCount, 1)
-	worker := newCustomWorker(p.close)
+	worker := newCustomWorker(p.ctx)
 	go worker.Spawn(t, func() {
 		atomic.AddInt64(&p.spawnCount, -1)
 		p.waitTask()
@@ -284,7 +285,7 @@ func (p *Pool) UnstoppableWorkers() int {
 func (p *Pool) Close() {
 	p.syncClose.Do(func() {
 		p.guard.Lock()
-		close(p.close)
+		p.cancel()
 		p.guard.Unlock()
 		p.taskDeque.close()
 
@@ -296,7 +297,7 @@ func (p *Pool) Close() {
 		for _, worker := range workers {
 			worker.Release()
 			for task := range worker.taskChan {
-				p.taskDeque.put(task, true)
+				_ = p.taskDeque.put(task, true)
 			}
 		}
 
@@ -313,7 +314,7 @@ func (p *Pool) Close() {
 // IsClosed returns true if this pool has been closed.
 func (p *Pool) IsClosed() bool {
 	select {
-	case <-p.close:
+	case <-p.ctx.Done():
 		return true
 	default:
 		return false

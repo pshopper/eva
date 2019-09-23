@@ -26,19 +26,19 @@ import (
 )
 
 type customWorker struct {
+	ctx         context.Context
 	taskChan    chan *wrappedTask
 	freeChan    chan struct{}
 	syncRelease sync.Once
 	release     chan struct{}
-	kill        <-chan struct{}
 }
 
-func newCustomWorker(kill <-chan struct{}) *customWorker {
+func newCustomWorker(ctx context.Context) *customWorker {
 	return &customWorker{
+		ctx:      ctx,
 		taskChan: make(chan *wrappedTask, 1),
 		release:  make(chan struct{}),
 		freeChan: make(chan struct{}, 1),
-		kill:     kill,
 	}
 }
 
@@ -55,7 +55,7 @@ func (cw *customWorker) completeTask(t *wrappedTask) {
 		break
 	case <-cw.release:
 		break
-	case <-cw.kill:
+	case <-cw.ctx.Done():
 		break
 	case <-ctx.Done():
 		break
@@ -105,7 +105,7 @@ LOOP:
 			cw.runTask(t, onComplete)
 		case <-cw.release:
 			break LOOP
-		case <-cw.kill:
+		case <-cw.ctx.Done():
 			break LOOP
 		}
 	}

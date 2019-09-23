@@ -14,7 +14,7 @@ func TestCustomTaskCancel(t *testing.T) {
 	}
 
 	task.Get()
-	task.Error()
+	_ = task.Error()
 	task.Panic()
 }
 
@@ -44,6 +44,6 @@ func TestCustomTaskCancelDone(t *testing.T) {
 	}
 
 	task.Get()
-	task.Error()
+	_ = task.Error()
 	task.Panic()
 }

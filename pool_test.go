@@ -41,7 +41,7 @@ func TestSubmit(t *testing.T) {
 			return nil, nil
 		})
 
-		p.Submit(task)
+		_ = p.Submit(task)
 	}
 
 	activeCount := p.ActiveCount()
@@ -78,14 +78,14 @@ func TestSubmitClose1(t *testing.T) {
 			select {
 			case completion <- i:
 				break
-			case <-p.close:
+			case <-p.ctx.Done():
 				return nil, nil
 			}
 			atomic.AddUint32(&count, 1)
 			return nil, nil
 		}, i)
 
-		p.Submit(task)
+		_ = p.Submit(task)
 	}
 
 	resultCount := 0
@@ -127,7 +127,7 @@ func TestSubmitClose2(t *testing.T) {
 			select {
 			case completion <- i:
 				break
-			case <-p.close:
+			case <-p.ctx.Done():
 				return nil, nil
 			}
 			atomic.AddUint32(&count, 1)
@@ -169,13 +169,13 @@ func TestSubmitWithCompletionClose1(t *testing.T) {
 			select {
 			case completion1 <- i:
 				break
-			case <-p.close:
+			case <-p.ctx.Done():
 				break
 			}
 			return 1, nil
 		}, i)
 
-		p.SubmitWithCompletion(completion2, task)
+		_ = p.SubmitWithCompletion(completion2, task)
 	}
 
 	resultCount := 0
@@ -205,13 +205,13 @@ func TestSubmitWithCompletionClose2(t *testing.T) {
 			select {
 			case completion1 <- i:
 				break
-			case <-p.close:
+			case <-p.ctx.Done():
 				break
 			}
 			return 1, nil
 		}, i)
 
-		p.SubmitWithCompletion(completion2, task)
+		_ = p.SubmitWithCompletion(completion2, task)
 	}
 
 	resultCount := 0
@@ -239,7 +239,7 @@ func TestSubmitWithCompletion(t *testing.T) {
 			return 1, nil
 		})
 
-		p.SubmitWithCompletion(completion, task)
+		_ = p.SubmitWithCompletion(completion, task)
 	}
 
 	count := 0
@@ -285,7 +285,7 @@ func TestSubmitWithCompletionPanic(t *testing.T) {
 			return 1, nil
 		}, i)
 
-		p.SubmitWithCompletion(completion, task)
+		_ = p.SubmitWithCompletion(completion, task)
 	}
 
 	countPanic := 0
@@ -348,7 +348,7 @@ func TestSubmitWithCancel(t *testing.T) {
 			return nil, nil
 		}, i)
 
-		p.SubmitWithContext(ctx, task)
+		_ = p.SubmitWithContext(ctx, task)
 	}
 
 	wg1.Wait()
@@ -381,7 +381,7 @@ func TestSubmitWithCancel(t *testing.T) {
 			return nil, nil
 		}, i)
 
-		p.SubmitWithContext(ctx, task)
+		_ = p.SubmitWithContext(ctx, task)
 	}
 
 	wg1.Wait()
@@ -417,7 +417,7 @@ func TestSubmitCustom1(t *testing.T) {
 			return 1, nil
 		}, i)
 
-		p.SubmitCustom(ctx, completion, task)
+		_ = p.SubmitCustom(ctx, completion, task)
 	}
 
 	wg1.Wait()
@@ -447,7 +447,7 @@ func TestSubmitCustom2(t *testing.T) {
 			return 1, nil
 		}, i)
 
-		p.SubmitCustom(ctx, completion, task)
+		_ = p.SubmitCustom(ctx, completion, task)
 	}
 
 	wg1.Wait()
@@ -569,7 +569,7 @@ func TestWaitClose(t *testing.T) {
 			return nil, nil
 		})
 
-		p.SubmitWithCompletion(completion, task)
+		_ = p.SubmitWithCompletion(completion, task)
 	}
 
 	resultCount := 0
@@ -610,22 +610,22 @@ func TestResize1(t *testing.T) {
 			return nil, nil
 		}, i)
 
-		p.Submit(task)
+		_ = p.Submit(task)
 	}
 
 	wg1.Wait()
 
-	p.SetSize(7)
+	_ = p.SetSize(7)
 	if p.config.Size != 7 {
 		t.Fatalf("invalid pool size %d; want 7", p.Size())
 	}
 
-	p.SetSize(12)
+	_ = p.SetSize(12)
 	if p.config.Size != 12 {
 		t.Fatalf("invalid pool size %d; want 12", p.Size())
 	}
 
-	p.SetSize(3)
+	_ = p.SetSize(3)
 	if p.config.Size != 3 {
 		t.Fatalf("invalid pool size %d; want 3", p.Size())
 	}
@@ -665,22 +665,22 @@ func TestResize2(t *testing.T) {
 			return nil, nil
 		}, i)
 
-		p.Submit(task)
+		_ = p.Submit(task)
 	}
 
 	wg1.Wait()
 
-	p.SetSize(7)
+	_ = p.SetSize(7)
 	if p.config.Size != 7 {
 		t.Fatalf("invalid pool size %d; want 7", p.Size())
 	}
 
-	p.SetSize(12)
+	_ = p.SetSize(12)
 	if p.config.Size != 12 {
 		t.Fatalf("invalid pool size %d; want 12", p.Size())
 	}
 
-	p.SetSize(3)
+	_ = p.SetSize(3)
 	if p.config.Size != 3 {
 		t.Fatalf("invalid pool size %d; want 3", p.Size())
 	}
